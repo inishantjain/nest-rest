@@ -1,0 +1,10 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "book-db",
+            "database": "/home/admin1/Desktop/myexpfolder/nest projects/booksqlite.db"
+        }
+    ]
+}
