@@ -1,41 +1,51 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { NotFoundException, Injectable } from '@nestjs/common';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 import { Book } from './entities/book.entity';
-import { PrismaService } from 'src/prisma.service';
+import { DatabaseService } from 'src/database/database.service';
 
 @Injectable()
 export class BooksService {
-  constructor(private readonly prismaService: PrismaService) { }
+  constructor(private readonly databaseService: DatabaseService) {}
 
-  async add(book: CreateBookDto) {
-    book.authorId = Number(book.authorId)//FIXME: authorId receiving as string, we need it as number
-
-    const user = await this.prismaService.author.findUnique({ where: { id: book.authorId } });
-    if (!user) throw new HttpException('Author Not Found With Provided authorId:' + book.authorId, HttpStatus.NOT_FOUND);
-    await this.prismaService.book.create({ data: book });
+  async add(createBookDto: CreateBookDto) {
+    const user = await this.databaseService.author.findUnique({
+      where: { id: createBookDto.authorId },
+    });
+    if (!user) throw new NotFoundException('Author Not Found With Provided authorId:' + createBookDto.authorId);
+    await this.databaseService.book.create({ data: createBookDto });
   }
 
   async getAllBooks(): Promise<Book[]> {
-    const books = await this.prismaService.book.findMany();
+    const books = await this.databaseService.book.findMany();
     return books;
   }
 
   async getBook(isbn: string, populateAuthor: boolean = false) {
-    const book = await this.prismaService.book.findFirst({ where: { isbn }, include: { author: populateAuthor } });
-    if (!book) throw new HttpException('Book Not Found', HttpStatus.NOT_FOUND);
+    const book = await this.databaseService.book.findFirst({
+      where: { isbn },
+      include: { author: populateAuthor },
+    });
+    if (!book) throw new NotFoundException('Book Not Found');
     return book;
   }
 
-  async editBook(isbn: string, book: UpdateBookDto) {
-    const isPresent = await this.prismaService.book.findFirst({ where: { isbn } });
-    if (!isPresent) throw new HttpException('Book Not Found', HttpStatus.NOT_FOUND);
-    await this.prismaService.book.updateMany({ where: { isbn: isbn }, data: book })
+  async editBook(isbn: string, updateBookDto: UpdateBookDto) {
+    const isPresent = await this.databaseService.book.findFirst({
+      where: { isbn },
+    });
+    if (!isPresent) throw new NotFoundException('Book Not Found');
+    await this.databaseService.book.updateMany({
+      where: { isbn: isbn },
+      data: updateBookDto,
+    });
   }
 
   async remove(isbn: string) {
-    const isPresent = await this.prismaService.book.findFirst({ where: { isbn } });
-    if (!isPresent) throw new HttpException('Book Not Found', HttpStatus.NOT_FOUND);
-    await this.prismaService.book.deleteMany({ where: { isbn: isbn } })
+    const isPresent = await this.databaseService.book.findFirst({
+      where: { isbn },
+    });
+    if (!isPresent) throw new NotFoundException('Book Not Found');
+    await this.databaseService.book.deleteMany({ where: { isbn: isbn } });
   }
 }

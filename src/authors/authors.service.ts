@@ -1,34 +1,38 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/prisma.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { AddAuthorDto } from './dto/add-author.dto';
 import { UpdateAuthorDto } from './dto/update-author.dto';
+import { DatabaseService } from 'src/database/database.service';
 
 @Injectable()
 export class AuthorsService {
-    constructor(private readonly prismaService: PrismaService) { }
+  constructor(private readonly databaseService: DatabaseService) {}
 
-    async addAuthor(author: AddAuthorDto) {
-        console.log(author);
-        await this.prismaService.author.create({ data: author })
-    }
+  async addAuthor(author: AddAuthorDto) {
+    await this.databaseService.author.create({ data: author });
+  }
 
-    async editAuthor(author: UpdateAuthorDto) {
-        const updatedAuthor = await this.prismaService.author.update({ where: { id: author.id, }, data: author, include: {} })
+  async updateAuthor(updateAuthorDto: UpdateAuthorDto) {
+    const updatedAuthor = await this.databaseService.author.update({
+      where: { id: updateAuthorDto.id },
+      data: updateAuthorDto,
+      include: {},
+    });
 
-        if (!updatedAuthor) throw new HttpException('Author Not Found', HttpStatus.NOT_FOUND);
-    }
+    if (!updatedAuthor) throw new NotFoundException('Author Not Found');
+  }
 
-    async getAuthorById(id: number) {
-        const author = await this.prismaService.author.findFirst({ where: { id } })
-        if (!author) throw new HttpException('Author Not Found', HttpStatus.NOT_FOUND);
-        return author;
-    }
+  async getAuthorById(id: number) {
+    const author = await this.databaseService.author.findFirst({
+      where: { id },
+    });
+    if (!author) throw new NotFoundException('Author Not Found');
+    return author;
+  }
 
-    async getAllAuthors() {
-        return this.prismaService.author.findMany({ include: { books: true } });//populating books in user
-    }
+  async getAllAuthors() {
+    return this.databaseService.author.findMany({ include: { books: true } }); //populating books in user
+  }
 
-    /*TODO:*/
-    // async getAuthorByUsername(username: string)
-
+  /*TODO:*/
+  // async getAuthorByUsername(username: string)
 }
